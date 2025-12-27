@@ -78,12 +78,12 @@ export const usePendingMessage = () =>
 export const useChatActions = () => {
   const openChat = useChatStore((state) => state.openChat);
   const openChatWithMessage = useChatStore(
-    (state) => state.openChatWithMessage,
+    (state) => state.openChatWithMessage
   );
   const closeChat = useChatStore((state) => state.closeChat);
   const toggleChat = useChatStore((state) => state.toggleChat);
   const clearPendingMessage = useChatStore(
-    (state) => state.clearPendingMessage,
+    (state) => state.clearPendingMessage
   );
 
   return {

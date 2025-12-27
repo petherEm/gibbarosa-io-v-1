@@ -2,9 +2,10 @@
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import {
   IconMenu2,
-  IconX,
-  IconSearch,
   IconPackage,
+  IconSearch,
+  IconSparkles,
+  IconX,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import { useState } from "react";
 import { CartButton } from "./cart/cart-button";
 import { Container } from "./container";
 import { Logo } from "./logo";
+import { useChatActions } from "@/lib/store/chat-store-provider";
 
 const navlinks = [
   { title: "Shop All", href: "/shop" },
@@ -32,6 +34,7 @@ export const Navbar = () => {
 
 export const MobileNavbar = () => {
   const [open, setOpen] = useState(false);
+  const { openChat } = useChatActions();
   return (
     <div className="flex lg:hidden px-6 py-4 justify-between items-center relative">
       <button onClick={() => setOpen(!open)} aria-label="Open menu">
@@ -43,6 +46,13 @@ export const MobileNavbar = () => {
       <div className="flex items-center gap-4">
         <button type="button" aria-label="Search">
           <IconSearch className="size-5 text-foreground" />
+        </button>
+        <button
+          type="button"
+          aria-label="AI Assistant"
+          onClick={openChat}
+        >
+          <IconSparkles className="size-5 text-foreground" />
         </button>
         <CartButton className="relative text-foreground" size="sm" />
       </div>
@@ -119,6 +129,7 @@ export const MobileNavbar = () => {
 };
 
 export const DesktopNavbar = () => {
+  const { openChat } = useChatActions();
   return (
     <Container className="py-5 items-center justify-between hidden lg:flex">
       <Logo />
@@ -142,6 +153,16 @@ export const DesktopNavbar = () => {
           className="hover:text-accent transition-colors"
         >
           <IconSearch className="size-5" />
+        </button>
+
+        <button
+          type="button"
+          aria-label="AI Assistant"
+          onClick={openChat}
+          className="hover:text-accent transition-colors"
+          title="AI Assistant"
+        >
+          <IconSparkles className="size-5" />
         </button>
 
         <SignedIn>

@@ -8,14 +8,10 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format a price amount with currency symbol
  * @param amount - The price amount (can be null/undefined)
- * @param currency - Currency symbol (default: "£")
- * @returns Formatted price string (e.g., "£599.99")
+ * @returns Formatted price string (e.g., "599,00 zł")
  */
-export function formatPrice(
-  amount: number | null | undefined,
-  currency = "£"
-): string {
-  return `${currency}${(amount ?? 0).toFixed(2)}`;
+export function formatPrice(amount: number | null | undefined): string {
+  return `${(amount ?? 0).toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł`;
 }
 
 type DateFormatOption = "short" | "long" | "datetime";
