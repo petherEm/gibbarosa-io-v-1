@@ -6,10 +6,13 @@ A Next.js 16 e-commerce platform for authenticated preowned luxury goods, powere
 
 - **Framework**: Next.js 16 (App Router, Server Components)
 - **CMS**: Sanity v3 with embedded Studio at `/studio`
+- **Auth**: Clerk (authentication & user management)
+- **Payments**: Stripe Checkout (hosted payment page)
+- **State**: Zustand (cart with localStorage persistence)
 - **Styling**: Tailwind CSS v4 with custom luxury theme
 - **UI Components**: shadcn/ui
 - **Animations**: Motion (Framer Motion)
-- **Icons**: Tabler Icons, Sanity Icons
+- **Icons**: Tabler Icons, Sanity Icons, Lucide
 - **Image Lightbox**: yet-another-react-lightbox
 - **Language**: TypeScript (strict mode)
 - **Currency**: Polish Złoty (PLN) - formatted with `toLocaleString("pl-PL")`
@@ -18,29 +21,61 @@ A Next.js 16 e-commerce platform for authenticated preowned luxury goods, powere
 
 ```
 ├── app/
-│   ├── (app)/              # Main storefront routes
-│   │   ├── page.tsx        # Homepage
-│   │   ├── shop/           # Shop with filters
-│   │   └── product/[slug]/ # Product detail page
-│   ├── studio/             # Sanity Studio (embedded)
-│   ├── globals.css         # Theme & CSS variables
-│   └── layout.tsx          # Root layout with fonts
+│   ├── (app)/                    # Main storefront routes
+│   │   ├── page.tsx              # Homepage
+│   │   ├── about/                # About page
+│   │   ├── shop/                 # Shop with filters
+│   │   ├── product/[slug]/       # Product detail page
+│   │   ├── checkout/             # Checkout page
+│   │   │   └── success/          # Order confirmation
+│   │   └── account/
+│   │       └── orders/           # Customer orders
+│   │           └── [orderNumber]/ # Order detail
+│   ├── api/
+│   │   └── webhooks/stripe/      # Stripe webhook handler
+│   ├── studio/                   # Sanity Studio (embedded)
+│   ├── globals.css               # Theme & CSS variables
+│   └── layout.tsx                # Root layout with fonts
 ├── components/
-│   ├── ui/                 # shadcn/ui components
-│   ├── product/            # Product-specific components
-│   ├── navbar.tsx          # Main navigation
-│   ├── footer.tsx          # Site footer
-│   ├── hero.tsx            # Homepage hero with rotating products
-│   └── product-card.tsx    # Reusable product card
+│   ├── ui/                       # shadcn/ui components
+│   ├── cart/                     # Cart components
+│   │   ├── add-to-cart-button.tsx
+│   │   ├── cart-button.tsx
+│   │   ├── cart-drawer.tsx
+│   │   └── cart-item.tsx
+│   ├── checkout/                 # Checkout components
+│   │   ├── checkout-content.tsx
+│   │   ├── checkout-form.tsx
+│   │   ├── checkout-item.tsx
+│   │   └── checkout-summary.tsx
+│   ├── orders/                   # Order display components
+│   │   ├── order-card.tsx
+│   │   └── order-status-badge.tsx
+│   ├── product/                  # Product-specific components
+│   ├── navbar.tsx                # Main navigation (Clerk integrated)
+│   ├── footer.tsx                # Site footer
+│   ├── hero.tsx                  # Homepage hero with rotating products
+│   └── product-card.tsx          # Reusable product card
+├── hooks/
+│   └── useCartStock.ts           # Real-time stock validation
 ├── lib/
-│   ├── constants/          # Shared constants (filters, status)
+│   ├── actions/                  # Server actions
+│   │   ├── checkout.ts           # Stripe checkout session
+│   │   └── customer.ts           # Customer management
+│   ├── constants/                # Shared constants
+│   │   ├── filters.ts            # Colors, materials, conditions
+│   │   ├── orderStatus.ts        # Order status config
+│   │   └── stock.ts              # Stock thresholds
 │   ├── sanity/
-│   │   └── queries/        # GROQ queries by domain
-│   └── utils.ts            # Utility functions (cn, etc.)
+│   │   └── queries/              # GROQ queries by domain
+│   ├── store/                    # Zustand stores
+│   │   ├── cart-store.ts         # Cart state & actions
+│   │   └── cart-store-provider.tsx # SSR-safe provider
+│   └── utils.ts                  # Utility functions (cn, etc.)
 ├── sanity/
-│   ├── schemaTypes/        # Sanity document schemas
-│   └── lib/                # Sanity client & live preview
-└── sanity.types.ts         # Auto-generated types (do not edit)
+│   ├── schemaTypes/              # Sanity document schemas
+│   └── lib/                      # Sanity client & live preview
+└── sanity.types.ts               # Auto-generated types (do not edit)
 ```
 
 ---
@@ -324,12 +359,29 @@ Luxury aesthetic with warm cream background and elegant blacks:
 |-----|-------------|
 | `/product/[slug]` | Product detail page |
 
+### Checkout Routes
+
+| URL | Description |
+|-----|-------------|
+| `/checkout` | Cart review & checkout initiation |
+| `/checkout/success?session_id=...` | Order confirmation (clears cart) |
+
+### Account Routes
+
+| URL | Description |
+|-----|-------------|
+| `/account/orders` | Customer order history |
+| `/account/orders/[orderNumber]` | Order detail page |
+| `/sign-in` | Clerk sign-in (redirects back) |
+| `/sign-up` | Clerk sign-up |
+
 ### Navigation Links
 
 Navbar and footer link to:
 - Shop All: `/shop`
 - New Arrivals: `/shop?sort=newest`
 - Promotions: `/shop?sale=true`
+- My Orders: `/account/orders` (signed in only)
 
 ---
 
@@ -372,6 +424,200 @@ const compareAtPrice = product.compareAtPrice as number | null;
 - Product card: Client component (hover state)
 - Product gallery: Client component (lightbox)
 
+### Sold Items Display
+
+When stock = 0, items show "Gone Forever":
+- Product cards: overlay with "Gone Forever" badge
+- Product page: disabled button with "Gone Forever"
+- Checkout: warning if item became unavailable
+
+---
+
+## Cart System
+
+### Architecture
+
+Zustand store with localStorage persistence and SSR-safe hydration:
+
+```typescript
+// lib/store/cart-store.ts
+interface CartItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
+
+// Actions: addItem, removeItem, updateQuantity, clearCart, toggleCart
+```
+
+### SSR Hydration
+
+Uses `skipHydration: true` with manual rehydration to prevent hydration mismatch:
+
+```typescript
+// cart-store-provider.tsx
+useEffect(() => {
+  storeRef.current?.persist.rehydrate();
+}, []);
+```
+
+### Hooks
+
+```typescript
+useCartItems()      // Get all items
+useCartActions()    // Get actions (addItem, removeItem, etc.)
+useCartItem(id)     // Find specific item
+useTotalPrice()     // Calculate total
+useTotalItems()     // Count items
+```
+
+### Stock Validation
+
+`useCartStock` hook fetches real-time stock from Sanity:
+
+```typescript
+const { stockMap, isLoading, hasStockIssues } = useCartStock(items);
+// stockMap: Map<productId, StockInfo>
+// hasStockIssues: true if any item out of stock
+```
+
+---
+
+## Checkout Flow
+
+### Flow Diagram
+
+```
+Cart → Checkout Page → Stripe Checkout → Success Page
+                ↓              ↓
+         Stock Check    Webhook (order creation)
+```
+
+### Server Actions
+
+**`createCheckoutSession(items)`** - `lib/actions/checkout.ts`
+1. Verify user authenticated (Clerk)
+2. Validate cart not empty
+3. Fetch current prices/stock from Sanity
+4. Create/find Stripe customer
+5. Create Stripe Checkout Session
+6. Return session URL for redirect
+
+**`getOrCreateStripeCustomer(email, name, clerkUserId)`** - `lib/actions/customer.ts`
+1. Check Sanity for existing customer
+2. Check Stripe for existing customer
+3. Create in both if needed
+4. Return `{ stripeCustomerId, sanityCustomerId }`
+
+### Stripe Webhook
+
+**`POST /api/webhooks/stripe`** handles `checkout.session.completed`:
+
+1. Verify signature
+2. Idempotency check (prevent duplicate orders)
+3. Extract metadata from session
+4. Create order in Sanity
+5. Decrement stock (transaction)
+
+### Metadata Passed to Stripe
+
+```typescript
+{
+  clerkUserId: string;
+  userEmail: string;
+  sanityCustomerId: string;
+  productIds: string;      // comma-separated
+  quantities: string;      // comma-separated
+}
+```
+
+---
+
+## Order System
+
+### Order Statuses
+
+Defined in `lib/constants/orderStatus.ts`:
+
+| Status | Label | Color | Icon |
+|--------|-------|-------|------|
+| `paid` | Paid | Green | CreditCard |
+| `shipped` | Shipped | Blue | Truck |
+| `delivered` | Delivered | Gray | Package |
+| `cancelled` | Cancelled | Red | XCircle |
+
+### Queries
+
+```typescript
+ORDERS_BY_USER_QUERY          // List for user (by clerkUserId)
+ORDER_BY_NUMBER_FOR_USER_QUERY // Detail with ownership check
+ORDER_BY_STRIPE_PAYMENT_ID_QUERY // Idempotency check
+```
+
+### Security
+
+Order detail query includes ownership check:
+```groq
+*[_type == "order"
+  && orderNumber == $orderNumber
+  && clerkUserId == $clerkUserId][0]
+```
+
+---
+
+## Authentication
+
+### Clerk Integration
+
+- `ClerkProvider` wraps `(app)` layout
+- `SignedIn`/`SignedOut` for conditional UI
+- `UserButton` for user menu
+- `auth()` for server-side user ID
+
+### Protected Routes
+
+Account routes redirect to sign-in:
+```typescript
+const { userId } = await auth();
+if (!userId) {
+  redirect("/sign-in?redirect_url=/account/orders");
+}
+```
+
+### Navbar Auth State
+
+```tsx
+<SignedIn>
+  <Link href="/account/orders">My Orders</Link>
+  <UserButton />
+</SignedIn>
+<SignedOut>
+  <Link href="/sign-in">Sign In</Link>
+</SignedOut>
+```
+
+---
+
+## Environment Variables
+
+```bash
+# Sanity
+NEXT_PUBLIC_SANITY_PROJECT_ID=
+NEXT_PUBLIC_SANITY_DATASET=
+SANITY_API_WRITE_TOKEN=        # For webhooks/mutations
+
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+# Stripe
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+NEXT_PUBLIC_BASE_URL=          # For success/cancel URLs
+```
+
 ---
 
 ## Commands
@@ -388,4 +634,32 @@ npx sanity typegen generate
 
 # Sanity Studio (embedded)
 # Visit /studio in browser
+
+# Stripe webhook local testing
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+---
+
+## Key Business Logic
+
+### Single Item Inventory
+
+This is a preowned luxury shop - each item is unique:
+- Stock is typically 1 per product
+- No quantity selectors in cart
+- When sold, item shows "Gone Forever"
+
+### Price Validation
+
+Prices are validated server-side before checkout:
+- Fetches current price from Sanity
+- Prevents cart manipulation attacks
+- Uses Sanity price, not client price
+
+### Order Number Format
+
+```
+ORD-{timestamp_base36}-{random_4chars}
+Example: ORD-M5KX2A-7B3F
 ```

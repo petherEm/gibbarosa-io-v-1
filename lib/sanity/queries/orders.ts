@@ -83,3 +83,47 @@ export const ORDER_BY_STRIPE_PAYMENT_ID_QUERY = defineQuery(`*[
   && stripePaymentId == $stripePaymentId
 ][0]{ _id }`);
 
+/**
+ * Get order by order number for specific user
+ * Includes ownership check in query for security
+ */
+export const ORDER_BY_NUMBER_FOR_USER_QUERY = defineQuery(`*[
+  _type == "order"
+  && orderNumber == $orderNumber
+  && clerkUserId == $clerkUserId
+][0] {
+  _id,
+  orderNumber,
+  clerkUserId,
+  email,
+  items[]{
+    _key,
+    quantity,
+    priceAtPurchase,
+    product->{
+      _id,
+      name,
+      brand,
+      "slug": slug.current,
+      "image": images[0]{
+        asset->{
+          _id,
+          url
+        }
+      }
+    }
+  },
+  total,
+  status,
+  address{
+    name,
+    line1,
+    line2,
+    city,
+    postcode,
+    country
+  },
+  stripePaymentId,
+  createdAt
+}`);
+

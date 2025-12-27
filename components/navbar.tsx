@@ -1,16 +1,18 @@
 "use client";
-import { useState } from "react";
-import { Logo } from "./logo";
-import { Container } from "./container";
-import Link from "next/link";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import {
   IconMenu2,
   IconX,
   IconSearch,
-  IconUser,
+  IconPackage,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
+import { useState } from "react";
+
 import { CartButton } from "./cart/cart-button";
+import { Container } from "./container";
+import { Logo } from "./logo";
 
 const navlinks = [
   { title: "Shop All", href: "/shop" },
@@ -82,18 +84,32 @@ export const MobileNavbar = () => {
             </nav>
 
             <div className="mt-auto pb-8 flex flex-col gap-4">
-              <Link
-                href="/login"
-                className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-muted-foreground"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-foreground"
-              >
-                Create Account
-              </Link>
+              <SignedIn>
+                <Link
+                  href="/account/orders"
+                  onClick={() => setOpen(false)}
+                  className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-foreground flex items-center gap-2"
+                >
+                  <IconPackage className="size-4" />
+                  My Orders
+                </Link>
+              </SignedIn>
+              <SignedOut>
+                <Link
+                  href="/sign-in"
+                  onClick={() => setOpen(false)}
+                  className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-muted-foreground"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/sign-up"
+                  onClick={() => setOpen(false)}
+                  className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-foreground"
+                >
+                  Create Account
+                </Link>
+              </SignedOut>
             </div>
           </motion.div>
         )}
@@ -127,13 +143,34 @@ export const DesktopNavbar = () => {
         >
           <IconSearch className="size-5" />
         </button>
-        <Link
-          href="/account"
-          aria-label="Account"
-          className="hover:text-accent transition-colors"
-        >
-          <IconUser className="size-5" />
-        </Link>
+
+        <SignedIn>
+          <Link
+            href="/account/orders"
+            aria-label="My Orders"
+            className="hover:text-accent transition-colors"
+            title="My Orders"
+          >
+            <IconPackage className="size-5" />
+          </Link>
+          <UserButton
+            appearance={{
+              elements: {
+                avatarBox: "size-8",
+              },
+            }}
+          />
+        </SignedIn>
+
+        <SignedOut>
+          <Link
+            href="/sign-in"
+            className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Sign In
+          </Link>
+        </SignedOut>
+
         <CartButton className="relative hover:text-accent transition-colors" />
       </div>
     </Container>
