@@ -41,8 +41,8 @@ export function AddToCartButton({
 
   if (isOutOfStock) {
     return (
-      <Button size="lg" className={className} disabled>
-        Out of Stock
+      <Button size="lg" className={className} disabled variant="secondary">
+        Gone Forever
       </Button>
     );
   }

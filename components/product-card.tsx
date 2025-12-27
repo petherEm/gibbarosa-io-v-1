@@ -103,11 +103,11 @@ export function ProductCard({ product, className }: ProductCardProps) {
           )}
         </div>
 
-        {/* Out of Stock Overlay */}
+        {/* Sold Overlay */}
         {isOutOfStock && (
-          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-            <span className="text-xs font-[Inter,sans-serif] tracking-[0.1em] uppercase text-foreground">
-              Sold
+          <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+            <span className="text-xs font-[Inter,sans-serif] tracking-[0.15em] uppercase text-foreground/80 bg-foreground/10 px-4 py-2">
+              Gone Forever
             </span>
           </div>
         )}
