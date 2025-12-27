@@ -5,6 +5,7 @@ import {
   IconPackage,
   IconSearch,
   IconSparkles,
+  IconUser,
   IconX,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -113,14 +114,15 @@ export const MobileNavbar = () => {
                   <Link
                     href="/sign-in"
                     onClick={() => setOpen(false)}
-                    className="text-sm font-[Inter,sans-serif] tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm font-[Inter,sans-serif] tracking-[0.15em] uppercase text-foreground flex items-center gap-3 hover:text-accent transition-colors"
                   >
+                    <IconUser className="size-4" />
                     Sign In
                   </Link>
                   <Link
                     href="/sign-up"
                     onClick={() => setOpen(false)}
-                    className="text-sm font-[Inter,sans-serif] tracking-[0.15em] uppercase text-foreground hover:text-accent transition-colors"
+                    className="text-sm font-[Inter,sans-serif] tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-colors ml-7"
                   >
                     Create Account
                   </Link>
@@ -197,9 +199,11 @@ export const DesktopNavbar = () => {
         <SignedOut>
           <Link
             href="/sign-in"
-            className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Sign In"
+            className="hover:text-accent transition-colors"
+            title="Sign In"
           >
-            Sign In
+            <IconUser className="size-5" />
           </Link>
         </SignedOut>
 
