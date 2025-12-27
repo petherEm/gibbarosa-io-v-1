@@ -6,11 +6,11 @@ import Link from "next/link";
 import {
   IconMenu2,
   IconX,
-  IconShoppingBag,
   IconSearch,
   IconUser,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
+import { CartButton } from "./cart/cart-button";
 
 const navlinks = [
   { title: "Shop All", href: "/shop" },
@@ -39,15 +39,10 @@ export const MobileNavbar = () => {
       <Logo />
 
       <div className="flex items-center gap-4">
-        <button aria-label="Search">
+        <button type="button" aria-label="Search">
           <IconSearch className="size-5 text-foreground" />
         </button>
-        <button aria-label="Cart" className="relative">
-          <IconShoppingBag className="size-5 text-foreground" />
-          <span className="absolute -top-1 -right-1 size-4 bg-foreground text-background text-[10px] rounded-full flex items-center justify-center font-[Inter,sans-serif]">
-            0
-          </span>
-        </button>
+        <CartButton className="relative text-foreground" size="sm" />
       </div>
 
       <AnimatePresence>
@@ -126,6 +121,7 @@ export const DesktopNavbar = () => {
 
       <div className="flex items-center gap-6">
         <button
+          type="button"
           aria-label="Search"
           className="hover:text-accent transition-colors"
         >
@@ -138,15 +134,7 @@ export const DesktopNavbar = () => {
         >
           <IconUser className="size-5" />
         </Link>
-        <button
-          aria-label="Cart"
-          className="relative hover:text-accent transition-colors"
-        >
-          <IconShoppingBag className="size-5" />
-          <span className="absolute -top-2 -right-2 size-5 bg-foreground text-background text-[10px] rounded-full flex items-center justify-center font-[Inter,sans-serif]">
-            0
-          </span>
-        </button>
+        <CartButton className="relative hover:text-accent transition-colors" />
       </div>
     </Container>
   );

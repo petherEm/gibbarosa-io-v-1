@@ -44,7 +44,8 @@ export const FAQs = () => {
               Support
             </p>
             <Heading className="text-3xl md:text-4xl lg:text-5xl">
-              Frequently Asked Questions
+              Frequently Asked{" "}
+              <span className="italic font-bold"> Questions</span>
             </Heading>
           </div>
 

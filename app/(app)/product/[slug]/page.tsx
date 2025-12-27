@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation";
 import { Container } from "@/components/container";
 import { ProductImageGallery } from "@/components/product/product-image-gallery";
-import { Button } from "@/components/ui/button";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { PRODUCT_BY_SLUG_QUERY } from "@/lib/sanity/queries/products";
 import { sanityFetch } from "@/sanity/lib/live";
-import { IconShoppingBag } from "@tabler/icons-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ProductDetails } from "./product-details";
@@ -52,7 +51,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const isOutOfStock = (product.stock ?? 0) <= 0;
   // Cast compareAtPrice since typegen infers null when no data exists
   const compareAtPrice = product.compareAtPrice as number | null;
   const isOnSale =
@@ -153,14 +151,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
             )}
 
             {/* Add to Cart Button */}
-            <Button
-              size="lg"
+            <AddToCartButton
+              product={{
+                _id: product._id,
+                name: product.name,
+                price: product.price,
+                slug: product.slug,
+                image: product.images?.[0]?.asset?.url,
+              }}
+              stock={product.stock ?? 0}
               className="w-full h-14 text-base mb-10"
-              disabled={isOutOfStock}
-            >
-              <IconShoppingBag className="mr-2 size-5" />
-              {isOutOfStock ? "Out of Stock" : "Add to cart"}
-            </Button>
+            />
 
             {/* Product Details */}
             <ProductDetails product={product} />

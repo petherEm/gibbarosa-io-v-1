@@ -25,7 +25,7 @@ export const Newsletter = () => {
           </p>
 
           <Heading className="text-3xl md:text-4xl lg:text-5xl mb-6">
-            Join our circle
+            Join <span className="italic font-bold">our circle</span>
           </Heading>
 
           <Subheading className="mx-auto mb-10">
