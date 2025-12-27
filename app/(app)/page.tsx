@@ -30,16 +30,19 @@ export default async function Home() {
 
   // Extract products from heroSettings (type assertion needed as TypeGen
   // infers null when no document exists yet)
-  const heroProducts = (heroSettings as {
-    products?: Array<{
-      _id: string;
-      name: string | null;
-      slug: string | null;
-      price: number | null;
-      brand: string | null;
-      image: { asset: { _id: string; url: string | null } | null } | null;
-    }>;
-  } | null)?.products ?? [];
+  const heroProducts =
+    (
+      heroSettings as {
+        products?: Array<{
+          _id: string;
+          name: string | null;
+          slug: string | null;
+          price: number | null;
+          brand: string | null;
+          image: { asset: { _id: string; url: string | null } | null } | null;
+        }>;
+      } | null
+    )?.products ?? [];
 
   return (
     <div className="min-h-screen">
@@ -48,7 +51,7 @@ export default async function Home() {
       <FeaturedProducts products={featuredProducts} />
       <StorySection />
       <Newsletter />
-      <LogoCloud />
+      {/* <LogoCloud /> */}
       <FAQs />
     </div>
   );

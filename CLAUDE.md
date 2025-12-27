@@ -8,7 +8,8 @@ A Next.js 16 e-commerce platform for authenticated preowned luxury goods, powere
 - **CMS**: Sanity v3 with embedded Studio at `/studio`
 - **Auth**: Clerk (authentication & user management)
 - **Payments**: Stripe Checkout (hosted payment page)
-- **State**: Zustand (cart with localStorage persistence)
+- **AI**: Vercel AI SDK 6 (beta) with Claude via AI Gateway
+- **State**: Zustand (cart + chat stores with SSR-safe hydration)
 - **Styling**: Tailwind CSS v4 with custom luxury theme
 - **UI Components**: shadcn/ui
 - **Animations**: Motion (Framer Motion)
@@ -32,6 +33,7 @@ A Next.js 16 e-commerce platform for authenticated preowned luxury goods, powere
 │   │       └── orders/           # Customer orders
 │   │           └── [orderNumber]/ # Order detail
 │   ├── api/
+│   │   ├── chat/                 # AI chat endpoint
 │   │   └── webhooks/stripe/      # Stripe webhook handler
 │   ├── studio/                   # Sanity Studio (embedded)
 │   ├── globals.css               # Theme & CSS variables
@@ -43,6 +45,13 @@ A Next.js 16 e-commerce platform for authenticated preowned luxury goods, powere
 │   │   ├── cart-button.tsx
 │   │   ├── cart-drawer.tsx
 │   │   └── cart-item.tsx
+│   ├── chat/                     # AI chat components
+│   │   ├── welcome-screen.tsx
+│   │   ├── message-bubble.tsx
+│   │   ├── message-content.tsx
+│   │   ├── tool-call-ui.tsx
+│   │   ├── product-card-widget.tsx
+│   │   └── order-card-widget.tsx
 │   ├── checkout/                 # Checkout components
 │   │   ├── checkout-content.tsx
 │   │   ├── checkout-form.tsx
@@ -52,7 +61,8 @@ A Next.js 16 e-commerce platform for authenticated preowned luxury goods, powere
 │   │   ├── order-card.tsx
 │   │   └── order-status-badge.tsx
 │   ├── product/                  # Product-specific components
-│   ├── navbar.tsx                # Main navigation (Clerk integrated)
+│   ├── navbar.tsx                # Main navigation (Clerk + chat button)
+│   ├── chat-sheet.tsx            # AI chat sidebar
 │   ├── footer.tsx                # Site footer
 │   ├── hero.tsx                  # Homepage hero with rotating products
 │   └── product-card.tsx          # Reusable product card
@@ -62,6 +72,12 @@ A Next.js 16 e-commerce platform for authenticated preowned luxury goods, powere
 │   ├── actions/                  # Server actions
 │   │   ├── checkout.ts           # Stripe checkout session
 │   │   └── customer.ts           # Customer management
+│   ├── ai/                       # AI assistant
+│   │   ├── shopping-agent.ts     # Agent factory with tools
+│   │   ├── types.ts              # Shared AI types
+│   │   └── tools/                # AI tools
+│   │       ├── search-products.ts
+│   │       └── get-my-orders.ts
 │   ├── constants/                # Shared constants
 │   │   ├── filters.ts            # Colors, materials, conditions
 │   │   ├── orderStatus.ts        # Order status config
@@ -70,8 +86,10 @@ A Next.js 16 e-commerce platform for authenticated preowned luxury goods, powere
 │   │   └── queries/              # GROQ queries by domain
 │   ├── store/                    # Zustand stores
 │   │   ├── cart-store.ts         # Cart state & actions
-│   │   └── cart-store-provider.tsx # SSR-safe provider
-│   └── utils.ts                  # Utility functions (cn, etc.)
+│   │   ├── cart-store-provider.tsx
+│   │   ├── chat-store.ts         # Chat UI state
+│   │   └── chat-store-provider.tsx
+│   └── utils.ts                  # Utility functions (cn, formatPrice, etc.)
 ├── sanity/
 │   ├── schemaTypes/              # Sanity document schemas
 │   └── lib/                      # Sanity client & live preview
@@ -600,6 +618,140 @@ if (!userId) {
 
 ---
 
+## AI Shopping Assistant
+
+### Overview
+
+AI-powered chat assistant using Vercel AI SDK 6 (beta) with Claude via AI Gateway. The assistant helps users:
+- Discover products by brand, category, material, color, or price
+- Check order status (authenticated users only)
+- Navigate to product pages
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Frontend                                                     │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │ ChatSheet    │ ←→ │ useChat hook │ ←→ │ /api/chat    │  │
+│  │ (sidebar UI) │    │ (@ai-sdk/   │    │ (route)      │  │
+│  └──────────────┘    │  react)      │    └──────────────┘  │
+│                      └──────────────┘            ↓          │
+└─────────────────────────────────────────────────────────────┘
+                                                   ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Backend                                                      │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ ToolLoopAgent                                         │  │
+│  │  - model: gateway("anthropic/claude-sonnet-4-5")     │  │
+│  │  - instructions: luxury preowned assistant prompt     │  │
+│  │  - tools: searchProducts, getMyOrders (if auth)      │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                      ↓                    ↓                 │
+│  ┌──────────────────────┐    ┌──────────────────────┐     │
+│  │ searchProducts       │    │ getMyOrders          │     │
+│  │ (Sanity query)       │    │ (Sanity query)       │     │
+│  └──────────────────────┘    └──────────────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### File Structure
+
+```
+├── app/api/chat/route.ts           # API endpoint
+├── components/
+│   ├── chat-sheet.tsx              # Main chat sidebar
+│   └── chat/
+│       ├── index.ts                # Barrel exports
+│       ├── types.ts                # ToolCallPart type
+│       ├── utils.ts                # Message parsing utilities
+│       ├── welcome-screen.tsx      # Initial suggestions
+│       ├── message-bubble.tsx      # User/assistant messages
+│       ├── message-content.tsx     # Markdown rendering
+│       ├── tool-call-ui.tsx        # Tool status/results
+│       ├── product-card-widget.tsx # Product result card
+│       └── order-card-widget.tsx   # Order result card
+├── lib/
+│   ├── ai/
+│   │   ├── shopping-agent.ts       # Agent factory
+│   │   ├── types.ts                # Shared AI types
+│   │   └── tools/
+│   │       ├── search-products.ts  # Product search tool
+│   │       └── get-my-orders.ts    # Orders tool (auth-gated)
+│   └── store/
+│       ├── chat-store.ts           # Chat UI state
+│       └── chat-store-provider.tsx # SSR-safe provider
+```
+
+### Tools
+
+#### searchProducts
+
+Searches products in Sanity with filters:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `query` | string | Text search (name, brand, description) |
+| `category` | string | Category slug (bags, watches, sunglasses, etc.) |
+| `material` | enum | leather, gold, silver, silk, etc. |
+| `color` | enum | black, brown, beige, gold, etc. |
+| `minPrice` | number | Minimum price in PLN |
+| `maxPrice` | number | Maximum price in PLN |
+
+Returns: Product list with name, price, category, stock status, productUrl
+
+#### getMyOrders (authenticated only)
+
+Fetches user's orders with optional status filter:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | enum | paid, shipped, delivered, cancelled |
+
+Returns: Order list with orderNumber, total, status, itemNames, orderUrl
+
+### Chat Store
+
+Simple Zustand store for UI state (no persistence needed):
+
+```typescript
+interface ChatState {
+  isOpen: boolean;
+  pendingMessage: string | null;  // For pre-filled messages
+}
+
+// Hooks
+useIsChatOpen()           // Get open state
+usePendingMessage()       // Get pending message
+useChatActions()          // { openChat, openChatWithMessage, closeChat, toggleChat }
+```
+
+### Integration Points
+
+**Layout** (`app/(app)/layout.tsx`):
+```tsx
+<ChatStoreProvider>
+  <Navbar />
+  <main>{children}</main>
+  <ChatSheet />
+</ChatStoreProvider>
+```
+
+**Navbar** - Sparkles icon button triggers `openChat()`
+
+**Product pages** (optional) - Can use `openChatWithMessage("Tell me about similar products to X")`
+
+### Styling
+
+Chat components use project design tokens:
+- `bg-background`, `bg-secondary`, `bg-card` for surfaces
+- `text-foreground`, `text-muted-foreground` for text
+- `text-accent` for highlights and links
+- `border-border` for borders
+- `font-[Inter,sans-serif] tracking-[0.1em] uppercase` for labels
+
+---
+
 ## Environment Variables
 
 ```bash
@@ -616,6 +768,9 @@ CLERK_SECRET_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 NEXT_PUBLIC_BASE_URL=          # For success/cancel URLs
+
+# AI Gateway (Vercel AI SDK)
+AI_GATEWAY_API_KEY=            # For Claude via AI Gateway
 ```
 
 ---

@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { IconArrowRight, IconSparkles } from "@tabler/icons-react";
+import { IconArrowRight, IconShieldCheck } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
 
 interface HeroProduct {
@@ -53,9 +53,9 @@ export const Hero = ({ heroProducts }: HeroProps) => {
             className="order-2 lg:order-1"
           >
             <div className="flex items-center gap-2 mb-6">
-              <IconSparkles className="size-4 text-accent" />
+              <IconShieldCheck className="size-4 text-accent" />
               <span className="text-xs font-[Inter,sans-serif] tracking-[0.2em] uppercase text-muted-foreground">
-                AI-Authenticated Luxury
+                Human-Authenticated Luxury
               </span>
             </div>
 

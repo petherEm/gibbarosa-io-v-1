@@ -64,28 +64,31 @@ export const MobileNavbar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 h-full w-full z-50 bg-background px-6 py-4 flex flex-col"
+            className="fixed inset-0 h-screen w-screen z-[100] bg-background flex flex-col"
           >
-            <div className="flex justify-between items-center">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-border">
               <button onClick={() => setOpen(false)} aria-label="Close menu">
-                <IconX className="size-5" />
+                <IconX className="size-5 text-foreground" />
               </button>
               <Logo />
               <div className="w-5" />
             </div>
 
-            <nav className="flex flex-col gap-8 mt-16">
+            {/* Navigation */}
+            <nav className="flex-1 flex flex-col justify-center px-8">
               {navlinks.map((item, index) => (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
                   key={item.title}
+                  className="border-b border-border/50 last:border-b-0"
                 >
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className="text-3xl font-light tracking-wide text-foreground hover:text-accent transition-colors"
+                    className="block py-5 text-2xl font-light tracking-wide text-foreground hover:text-accent transition-colors"
                   >
                     {item.title}
                   </Link>
@@ -93,33 +96,41 @@ export const MobileNavbar = () => {
               ))}
             </nav>
 
-            <div className="mt-auto pb-8 flex flex-col gap-4">
+            {/* Footer */}
+            <div className="px-8 py-8 border-t border-border bg-secondary/50">
               <SignedIn>
                 <Link
                   href="/account/orders"
                   onClick={() => setOpen(false)}
-                  className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-foreground flex items-center gap-2"
+                  className="text-sm font-[Inter,sans-serif] tracking-[0.15em] uppercase text-foreground flex items-center gap-3 hover:text-accent transition-colors"
                 >
                   <IconPackage className="size-4" />
                   My Orders
                 </Link>
               </SignedIn>
               <SignedOut>
-                <Link
-                  href="/sign-in"
-                  onClick={() => setOpen(false)}
-                  className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-muted-foreground"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/sign-up"
-                  onClick={() => setOpen(false)}
-                  className="text-sm font-[Inter,sans-serif] tracking-[0.1em] uppercase text-foreground"
-                >
-                  Create Account
-                </Link>
+                <div className="flex flex-col gap-4">
+                  <Link
+                    href="/sign-in"
+                    onClick={() => setOpen(false)}
+                    className="text-sm font-[Inter,sans-serif] tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/sign-up"
+                    onClick={() => setOpen(false)}
+                    className="text-sm font-[Inter,sans-serif] tracking-[0.15em] uppercase text-foreground hover:text-accent transition-colors"
+                  >
+                    Create Account
+                  </Link>
+                </div>
               </SignedOut>
+
+              {/* Decorative tagline */}
+              <p className="mt-8 text-xs font-[Inter,sans-serif] tracking-[0.2em] uppercase text-muted-foreground">
+                Authenticated Luxury
+              </p>
             </div>
           </motion.div>
         )}
